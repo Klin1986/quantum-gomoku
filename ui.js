@@ -109,7 +109,7 @@
   }
 
   function refreshEstimate() {
-    if (game.phase === "decide" && (game.observationsLeft > 0 || game.isFull())) {
+    if (game.phase === "decide" && (game.observations[game.turn] > 0 || game.isFull())) {
       cachedEstimate = Q.estimate(game, 360);
     } else {
       cachedEstimate = null;
@@ -496,7 +496,7 @@
     if (settings().mode === "cpu" && game.turn === cpuPlayer()) return "コンピュータが考えています。";
     if (game.phase === "decide") {
       if (game.isFull()) return "盤が埋まりました。終局の観測をします。";
-      return `観測しますか。この対局であと${game.observationsLeft}回です。`;
+      return `観測しますか。${Q.playerName(game.turn)}はあと${game.observations[game.turn]}回です。`;
     }
     const spec = game.stoneSpec(game.turn, selectedOwn);
     const who = Q.playerName(game.turn);
@@ -504,7 +504,7 @@
     if (!game.legalOwnPercents().includes(90)) limit = "直前が90%なので、今回は70%です。";
     else if (repeat70) limit = "70%を連続で置きます。";
     const place = `${who}の番です。${spec.focus}${spec.ownPercent}%の石を置く交点を選んでください。${limit}`;
-    if (game.observationsLeft <= 0) return `観測は残っていません。${place}`;
+    if (game.observations[game.turn] <= 0) return `${who}の観測は残っていません。${place}`;
     return place;
   }
 
@@ -544,14 +544,20 @@
 
   function paintEyes() {
     eyesEl.replaceChildren();
-    for (let i = 0; i < 5; i += 1) {
-      const dot = document.createElement("i");
-      if (i < game.observationsLeft) dot.className = "on";
-      eyesEl.appendChild(dot);
+    for (const player of [Q.WHITE, Q.BLACK]) {
+      const row = document.createElement("span");
+      row.className = "eye-row";
+      const name = document.createElement("span");
+      name.textContent = Q.playerName(player);
+      row.appendChild(name);
+      const left = game.observations[player];
+      for (let i = 0; i < 5; i += 1) {
+        const dot = document.createElement("i");
+        if (i < left) dot.className = "on";
+        row.appendChild(dot);
+      }
+      eyesEl.appendChild(row);
     }
-    const label = document.createElement("span");
-    label.textContent = `観測 残り${game.observationsLeft}`;
-    eyesEl.appendChild(label);
   }
 
   function paintOdds() {

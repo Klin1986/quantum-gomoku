@@ -225,12 +225,21 @@ canvas {
 .mini.current { outline: 2px solid var(--good); outline-offset: 2px; }
 
 .eyes {
-  display: flex;
+  display: grid;
   gap: 8px;
-  align-items: center;
   margin-top: 14px;
   color: var(--muted);
   font-size: 13px;
+}
+
+.eye-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.eye-row span {
+  width: 1.5em;
 }
 
 .eyes i {

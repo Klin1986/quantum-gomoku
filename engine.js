@@ -34,7 +34,7 @@
   function createGame(options = {}) {
     const size = options.size ?? 9;
     const winLength = options.winLength ?? 5;
-if (size < 3 || size > 15) throw new Error("盤の大きさは3から15です");
+    if (size < 3 || size > 15) throw new Error("盤の大きさは3から15です");
     if (winLength < 3 || winLength > 15) throw new Error("勝ちの長さが盤に合いません");
 
     const game = {
@@ -45,7 +45,7 @@ if (size < 3 || size > 15) throw new Error("盤の大きさは3から15です");
       phase: "place",
       winner: null,
       reason: null,
-      observationsLeft: 5,
+      observations: { [BLACK]: 5, [WHITE]: 5 },
       stones: [],
       collapsed: null,
       lines: [],
@@ -105,7 +105,7 @@ if (size < 3 || size > 15) throw new Error("盤の大きさは3から15です");
           phase: this.phase,
           winner: this.winner,
           reason: this.reason,
-          observationsLeft: this.observationsLeft,
+          observations: { ...this.observations },
           stones: this.stones.map((s) => ({ ...s })),
           collapsed: this.collapsed ? this.collapsed.map((row) => row.slice()) : null,
           lines: this.lines.map((line) => ({
@@ -122,11 +122,18 @@ if (size < 3 || size > 15) throw new Error("盤の大きさは3から15です");
         this.phase = data.phase;
         this.winner = data.winner;
         this.reason = data.reason;
-        this.observationsLeft = data.observationsLeft;
+        this.observations = { ...data.observations };
         this.stones = data.stones;
         this.collapsed = data.collapsed;
         this.lines = data.lines;
         this.log = data.log;
+      },
+
+      _refillIfBothSpent() {
+        if (this.observations[BLACK] !== 0 || this.observations[WHITE] !== 0) return false;
+        this.observations[BLACK] = 1;
+        this.observations[WHITE] = 1;
+        return true;
       },
 
       undo() {
@@ -159,8 +166,8 @@ if (size < 3 || size > 15) throw new Error("盤の大きさは3から15です");
         this.log.push(`${who}が ${coord(r, c)} に${spec.focus}${spec.ownPercent}%を置いた`);
         this.phase = "decide";
 
-        if (this.observationsLeft <= 0 && !this.isFull()) {
-          this.log.push("観測は残っていないので、手番を渡した");
+        if (this.observations[this.turn] <= 0 && !this.isFull()) {
+          this.log.push(`${who}の観測は残っていないので、手番を渡した`);
           this.turn = opponent(this.turn);
           this.phase = "place";
           return { ok: true, autoPassed: true };
@@ -181,19 +188,19 @@ if (size < 3 || size > 15) throw new Error("盤の大きさは3から15です");
       observe() {
         if (this.phase !== "decide") return { ok: false, reason: "石を置いてから観測できます" };
         const terminal = this.isFull();
-        if (this.observationsLeft <= 0 && !terminal) {
+        if (this.observations[this.turn] <= 0 && !terminal) {
           return { ok: false, reason: "観測回数を使い切りました" };
         }
 
         this.history.push(this._snap());
-        const spent = this.observationsLeft > 0;
-        if (spent) this.observationsLeft -= 1;
-
         const observer = this.turn;
+        const spent = this.observations[observer] > 0;
+        if (spent) this.observations[observer] -= 1;
         const rolled = rollStones(this.stones, this.random);
         const grid = gridFromRoll(rolled, this.size);
         const judged = judgeGrid(grid, this.size, this.winLength, observer);
         const who = playerName(observer);
+        let refilled = false;
 
         if (judged.winner) {
           this.winner = judged.winner;
@@ -214,7 +221,13 @@ if (size < 3 || size > 15) throw new Error("盤の大きさは3から15です");
           this.phase = "place";
           this.collapsed = null;
           this.lines = [];
-          this.log.push(`${who}が観測したが揃わなかった（残り${this.observationsLeft}）`);
+          refilled = this._refillIfBothSpent();
+          if (refilled) {
+            this.log.push(`${who}が観測したが揃わなかった`);
+            this.log.push("双方の観測を使い切ったので、それぞれ1回回復した");
+          } else {
+            this.log.push(`${who}が観測したが揃わなかった（${who}の残り${this.observations[observer]}）`);
+          }
         }
 
         return {
@@ -225,7 +238,8 @@ if (size < 3 || size > 15) throw new Error("盤の大きさは3から15です");
           rolled,
           lines: judged.lines,
           reverted: !judged.winner && !terminal,
-          observationsLeft: this.observationsLeft,
+          refilled,
+          observations: { ...this.observations },
         };
       },
     };
@@ -419,7 +433,7 @@ if (size < 3 || size > 15) throw new Error("盤の大きさは3から15です");
   function aiWantsObserve(game, rng = Math.random) {
     if (game.phase !== "decide" || game.winner) return false;
     if (game.isFull()) return true;
-    if (game.observationsLeft <= 0) return false;
+    if (game.observations[game.turn] <= 0) return false;
     const est = estimate(game, 280, rng);
     if (est.observerWin >= 0.58 && est.observerWin > est.opponentWin) return true;
     if (est.observerWin >= 0.36 && est.observerWin >= est.opponentWin + 0.16) return true;

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>量子五目並べ</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%231c1c1c'/%3E%3Cpath d='M16 1 A15 15 0 0 1 16 31Z' fill='%23f4efe6'/%3E%3C/svg%3E">
+</head>
+<body>
+  <div class="app">
+    <header class="hero">
+      <p class="eyebrow">Quantum Gomoku</p>
+      <h1>量子五目並べ</h1>
+      <p class="lede">観測するまで、石の色は決まらない。</p>
+    </header>
+
+    <div class="layout">
+      <section class="stage">
+        <div class="board-wrap">
+          <canvas id="board" width="720" height="720" aria-label="量子五目並べの盤"></canvas>
+          <p id="banner" class="banner hidden"></p>
+        </div>
+        <p id="status" class="status" aria-live="polite"></p>
+      </section>
+
+      <aside class="side">
+        <section class="panel">
+          <p id="who" class="who"></p>
+          <div id="preview" class="preview"></div>
+          <div id="queue" class="queue" aria-label="このあとに置く石"></div>
+          <div id="eyes" class="eyes" aria-label="残りの観測回数"></div>
+          <div id="odds" class="odds" hidden></div>
+          <div class="actions">
+            <button id="observe" type="button">観測する</button>
+            <button id="pass" type="button">観測せず渡す</button>
+            <button id="undo" type="button">待った</button>
+            <button id="restart" type="button">新しい対局</button>
+          </div>
+        </section>
+
+        <section class="panel settings">
+          <label>対戦
+            <select id="mode">
+              <option value="cpu">コンピュータ</option>
+              <option value="pvp">ふたり</option>
+            </select>
+          </label>
+          <label id="color-field">自分
+            <select id="human">
+              <option value="2" selected>白（プレイヤー1・先手）</option>
+              <option value="1">黒（プレイヤー2・後手）</option>
+            </select>
+          </label>
+          <label>揃える数
+            <select id="win">
+              <option value="5" selected>5目</option>
+              <option value="3">3目（実験）</option>
+            </select>
+          </label>
+          <label>盤
+            <select id="size">
+              <option value="9" selected>9路</option>
+              <option value="15">15路</option>
+            </select>
+          </label>
+          <label class="check"><input id="sound" type="checkbox" checked> 音を鳴らす</label>
+        </section>
+
+        <details class="panel rules">
+          <summary>ルール</summary>
+          <ol id="rule-list">
+            <li>先手のプレイヤー1は、白になる確率が90%か70%の石だけを置きます。ふだんは90%が置かれ、直前が90%のときだけ70%になります。70%の次にもう一度70%を置くときだけ、自分で選びます。</li>
+            <li>後手のプレイヤー2はその逆で、黒90%と黒70%です。黒90%も連続では置けません。</li>
+            <li>盤上の数字は、その石を置いた側の色になる確率です。残りは反対の色になります。</li>
+            <li>置いたあと、観測するかを選べます。観測は1試合に5回までです。</li>
+            <li>観測すると、すべての石の色が一度に決まります。自分の色が縦・横・斜めに所定の数以上並べば勝ちです。</li>
+            <li>両方の色が同時に揃ったときは、観測した側の勝ちです。</li>
+            <li>揃わなければ石は確率の状態に戻り、対局を続けます。</li>
+          </ol>
+        </details>
+
+        <section class="panel log-panel">
+          <h2>棋譜</h2>
+          <ol id="log"></ol>
+        </section>
+      </aside>
+    </div>
+  </div>
+  <script src="engine.js"></script>
+  <script src="ui.js"></script>
+</body>
+</html>
